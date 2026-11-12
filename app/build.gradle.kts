@@ -13,8 +13,15 @@ android {
         applicationId = "it.scado"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        // In CI il numero di versione è il numero progressivo della build:
+        // è ciò che l'app confronta per capire se c'è un aggiornamento.
+        val buildNumber = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
+        versionCode = buildNumber
+        versionName = "1.0.$buildNumber"
+
+        // Repository GitHub da cui scaricare gli aggiornamenti.
+        val updateRepo = System.getenv("GITHUB_REPOSITORY") ?: "Nanobuo/scado"
+        buildConfigField("String", "UPDATE_REPO", "\"$updateRepo\"")
     }
 
     signingConfigs {
@@ -44,6 +51,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

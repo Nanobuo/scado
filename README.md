@@ -73,9 +73,9 @@ Serve un progetto Firebase. Il piano gratuito (Spark) basta e avanza.
 ## Compilare e installare
 
 **Con GitHub Actions**: a ogni push la action *Build APK* compila l'app.
-Apri l'esecuzione nella scheda *Actions* e scarica l'artifact `scado-apk`:
-contiene l'APK da installare sui telefoni (va permessa l'installazione da
-origini sconosciute). Senza il secret `GOOGLE_SERVICES_JSON` l'APK si compila
+Scarica `scado.apk` dall'ultima **Release** del repository (oppure l'artifact
+`scado-apk` dalla scheda *Actions*) e installalo sui telefoni (va permessa
+l'installazione da origini sconosciute). Senza il secret `GOOGLE_SERVICES_JSON` l'APK si compila
 lo stesso, ma non si collega a Firebase.
 
 **In locale**: apri la cartella con Android Studio e premi *Run*, oppure:
@@ -86,6 +86,24 @@ lo stesso, ma non si collega a Firebase.
 
 L'APK firmato con la chiave inclusa nel repository (`app/debug.keystore`) si
 installa sopra le versioni precedenti senza dover disinstallare.
+
+## Aggiornamenti automatici
+
+Basta installare l'APK a mano **una volta sola**: poi l'app si aggiorna da sé.
+
+- A ogni push sul branch principale (con il secret `GOOGLE_SERVICES_JSON`
+  configurato) la action pubblica una **Release** `vN` con l'APK `scado.apk`.
+  Il numero di versione è il numero progressivo della build.
+- L'app controlla l'ultima release all'avvio e una volta al giorno in
+  background (con una notifica). Se c'è una versione nuova mostra le novità,
+  la scarica e apre l'installer di Android.
+- La prima volta Android chiede di consentire a Scado di installare app
+  («Consenti da questa fonte»): l'app ti porta direttamente all'impostazione.
+- Puoi controllare anche a mano da *Impostazioni → Versione*.
+
+Le release sono pubbliche, come il repository. L'APK contiene la
+configurazione di Firebase: non è un segreto, perché i dati sono protetti dalle
+regole di sicurezza e ogni frigo resta visibile solo ai suoi membri.
 
 ## Primo utilizzo in due
 

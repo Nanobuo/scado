@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.NoMeals
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -57,13 +58,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import it.scado.BuildConfig
 import it.scado.ui.FridgeViewModel
 import it.scado.ui.components.ReminderPicker
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(vm: FridgeViewModel, onBack: () -> Unit) {
+fun SettingsScreen(vm: FridgeViewModel, onBack: () -> Unit, onCheckUpdates: () -> Unit) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val household by vm.household.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -193,6 +195,15 @@ fun SettingsScreen(vm: FridgeViewModel, onBack: () -> Unit) {
                 leadingContent = { Icon(Icons.AutoMirrored.Filled.Logout, null) },
                 colors = transparent,
                 modifier = Modifier.fillMaxWidth().clickable { vm.signOut() },
+            )
+
+            SectionTitle("App")
+            ListItem(
+                headlineContent = { Text("Versione ${BuildConfig.VERSION_NAME}") },
+                supportingContent = { Text("Tocca per cercare aggiornamenti") },
+                leadingContent = { Icon(Icons.Default.SystemUpdate, null) },
+                colors = transparent,
+                modifier = Modifier.clickable(onClick = onCheckUpdates),
             )
         }
     }

@@ -27,6 +27,8 @@ import it.scado.ui.screens.HomeScreen
 import it.scado.ui.screens.HouseholdSetupScreen
 import it.scado.ui.screens.SettingsScreen
 import it.scado.ui.screens.ShoppingScreen
+import it.scado.update.UpdateDialog
+import it.scado.update.UpdateViewModel
 
 @Composable
 fun ScadoRoot(openShopping: Boolean, onShoppingOpened: () -> Unit) {
@@ -36,6 +38,8 @@ fun ScadoRoot(openShopping: Boolean, onShoppingOpened: () -> Unit) {
         factory = viewModelFactory { initializer { SessionViewModel(container) } }
     )
     val state by sessionVm.state.collectAsStateWithLifecycle()
+    // Legato all'Activity: controlla gli aggiornamenti all'avvio, su qualsiasi schermata.
+    val updateVm: UpdateViewModel = viewModel()
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         when (val s = state) {
@@ -43,10 +47,13 @@ fun ScadoRoot(openShopping: Boolean, onShoppingOpened: () -> Unit) {
             SessionState.SignedOut -> AuthScreen(container.authRepo)
             is SessionState.NoHousehold -> HouseholdSetupScreen(container, s)
             is SessionState.Ready -> key(s.uid, s.householdId) {
-                FridgeNav(app, container, s, openShopping, onShoppingOpened)
+                FridgeNav(app, container, s, openShopping, onShoppingOpened) {
+                    updateVm.check(manual = true)
+                }
             }
         }
     }
+    UpdateDialog(updateVm)
 }
 
 @Composable
@@ -56,6 +63,7 @@ private fun FridgeNav(
     session: SessionState.Ready,
     openShopping: Boolean,
     onShoppingOpened: () -> Unit,
+    onCheckUpdates: () -> Unit,
 ) {
     val vm: FridgeViewModel = viewModel(
         key = "fridge_${session.uid}_${session.householdId}",
@@ -72,7 +80,7 @@ private fun FridgeNav(
             )
         }
         composable("shopping") { ShoppingScreen(vm, onDone = { nav.popBackStack() }) }
-        composable("settings") { SettingsScreen(vm, onBack = { nav.popBackStack() }) }
+        composable("settings") { SettingsScreen(vm, onBack = { nav.popBackStack() }, onCheckUpdates = onCheckUpdates) }
     }
 
     LaunchedEffect(openShopping) {

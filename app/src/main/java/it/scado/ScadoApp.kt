@@ -10,6 +10,7 @@ import it.scado.data.ProductRepository
 import it.scado.data.SettingsRepository
 import it.scado.notify.Notifications
 import it.scado.notify.SyncWorker
+import it.scado.update.UpdateCheckWorker
 
 class ScadoApp : Application() {
     lateinit var container: AppContainer
@@ -20,6 +21,7 @@ class ScadoApp : Application() {
         container = AppContainer(this)
         Notifications.createChannel(this)
         SyncWorker.schedule(this)
+        UpdateCheckWorker.schedule(this)
     }
 }
 
