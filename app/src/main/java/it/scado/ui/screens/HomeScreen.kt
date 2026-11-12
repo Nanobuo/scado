@@ -6,7 +6,6 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -77,6 +76,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.scado.data.Product
 import it.scado.ui.FridgeViewModel
 import it.scado.ui.components.ProductForm
+import it.scado.ui.components.EmptyFridgeAnimation
+import it.scado.ui.theme.LocalDarkTheme
 import it.scado.ui.theme.urgencyColor
 import it.scado.util.Dates
 import it.scado.util.Emoji
@@ -230,7 +231,7 @@ private fun EmptyFridge(modifier: Modifier, onShopping: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("🧊", fontSize = 80.sp)
+        EmptyFridgeAnimation()
         Spacer(Modifier.height(12.dp))
         Text("Il frigo è vuoto", style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(8.dp))
@@ -291,7 +292,7 @@ private fun SwipeableProduct(
 @Composable
 private fun ProductCard(p: Product, onClick: () -> Unit) {
     val daysLeft = Dates.daysLeft(p.expiryEpochDay)
-    val color = urgencyColor(daysLeft, isSystemInDarkTheme())
+    val color = urgencyColor(daysLeft, LocalDarkTheme.current)
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),

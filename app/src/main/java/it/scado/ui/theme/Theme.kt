@@ -7,6 +7,8 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
@@ -81,11 +83,16 @@ fun urgencyColor(daysLeft: Long, dark: Boolean): Color = when {
     else -> if (dark) Color(0xFF8AD5B6) else Color(0xFF1B8A6B)
 }
 
+/** true se l'app sta usando il tema scuro (scelto dall'utente o dal sistema). */
+val LocalDarkTheme = staticCompositionLocalOf { false }
+
 @Composable
 fun ScadoTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = if (dark) Dark else Light,
-        shapes = AppShapes,
-        content = content,
-    )
+    CompositionLocalProvider(LocalDarkTheme provides dark) {
+        MaterialTheme(
+            colorScheme = if (dark) Dark else Light,
+            shapes = AppShapes,
+            content = content,
+        )
+    }
 }

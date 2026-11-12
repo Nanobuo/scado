@@ -26,8 +26,15 @@ data class UserProfile(
     val householdId: String?,
 )
 
+enum class ThemeMode(val label: String) {
+    SYSTEM("Sistema"),
+    LIGHT("Chiaro"),
+    DARK("Scuro"),
+}
+
 data class AppSettings(
     val defaultReminderDays: Set<Int> = setOf(3, 1, 0),
     val notifyHour: Int = 9,
     val notifyMinute: Int = 0,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
 )

@@ -17,6 +17,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.NoMeals
@@ -35,6 +37,10 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -48,7 +54,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -59,7 +68,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.scado.BuildConfig
+import it.scado.data.ThemeMode
 import it.scado.ui.FridgeViewModel
+import it.scado.ui.theme.LocalDarkTheme
 import it.scado.ui.components.ReminderPicker
 import kotlinx.coroutines.launch
 
@@ -73,7 +84,11 @@ fun SettingsScreen(vm: FridgeViewModel, onBack: () -> Unit, onCheckUpdates: () -
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
+    var renamingFridge by rememberSaveable { mutableStateOf(false) }
+    var renamingMe by rememberSaveable { mutableStateOf(false) }
     val session = vm.session
+    val userName by vm.userName.collectAsStateWithLifecycle()
+    val dark = LocalDarkTheme.current
     val transparent = ListItemDefaults.colors(containerColor = Color.Transparent)
 
     Scaffold(
@@ -99,9 +114,19 @@ fun SettingsScreen(vm: FridgeViewModel, onBack: () -> Unit, onCheckUpdates: () -
             SectionTitle("Il tuo frigo")
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Icon(Icons.Default.Kitchen, null)
-                        Text(household?.name ?: "…", style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            household?.name ?: "…",
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(onClick = { renamingFridge = true }, enabled = household != null) {
+                            Icon(Icons.Default.Edit, "Rinomina il frigo")
+                        }
                     }
                     household?.let { h ->
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -166,6 +191,9 @@ fun SettingsScreen(vm: FridgeViewModel, onBack: () -> Unit, onCheckUpdates: () -
                 modifier = Modifier.clickable {
                     TimePickerDialog(
                         context,
+                        // Orologio nativo di Android, con lo stesso tema (chiaro/scuro) dell'app
+                        if (dark) android.R.style.Theme_Material_Dialog
+                        else android.R.style.Theme_Material_Light_Dialog,
                         { _, h, m -> vm.setNotifyTime(h, m) },
                         settings.notifyHour,
                         settings.notifyMinute,
@@ -174,14 +202,36 @@ fun SettingsScreen(vm: FridgeViewModel, onBack: () -> Unit, onCheckUpdates: () -
                 },
             )
 
+            SectionTitle("Aspetto")
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Default.DarkMode, null, Modifier.padding(start = 16.dp))
+                Text("Tema", style = MaterialTheme.typography.bodyLarge)
+            }
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                val modes = ThemeMode.entries
+                modes.forEachIndexed { i, mode ->
+                    SegmentedButton(
+                        selected = settings.themeMode == mode,
+                        onClick = { vm.setThemeMode(mode) },
+                        shape = SegmentedButtonDefaults.itemShape(index = i, count = modes.size),
+                        label = { Text(mode.label) },
+                    )
+                }
+            }
+
             SectionTitle("Account")
             ListItem(
-                headlineContent = { Text(session.userName) },
+                headlineContent = { Text(userName) },
                 supportingContent = if (session.email != null) {
                     { Text(session.email) }
                 } else null,
                 leadingContent = { Icon(Icons.Default.Person, null) },
+                trailingContent = { Icon(Icons.Default.Edit, "Cambia nome") },
                 colors = transparent,
+                modifier = Modifier.clickable { renamingMe = true },
             )
             ListItem(
                 headlineContent = { Text("Esci da questo frigo") },
@@ -208,6 +258,31 @@ fun SettingsScreen(vm: FridgeViewModel, onBack: () -> Unit, onCheckUpdates: () -
         }
     }
 
+    if (renamingFridge) {
+        RenameDialog(
+            title = "Rinomina il frigo",
+            label = "Nome del frigo",
+            initial = household?.name ?: "",
+            onDismiss = { renamingFridge = false },
+            onConfirm = {
+                vm.renameFridge(it)
+                renamingFridge = false
+            },
+        )
+    }
+    if (renamingMe) {
+        RenameDialog(
+            title = "Il tuo nome",
+            label = "Nome",
+            initial = userName,
+            onDismiss = { renamingMe = false },
+            onConfirm = {
+                vm.renameMe(it)
+                renamingMe = false
+            },
+        )
+    }
+
     if (confirmLeave) {
         AlertDialog(
             onDismissRequest = { confirmLeave = false },
@@ -231,5 +306,34 @@ private fun SectionTitle(text: String) {
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(top = 12.dp),
+    )
+}
+
+@Composable
+private fun RenameDialog(
+    title: String,
+    label: String,
+    initial: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var text by rememberSaveable { mutableStateOf(initial) }
+    val valid = text.isNotBlank() && text.trim().length <= 60
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it.take(60) },
+                label = { Text(label) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(text.trim()) }, enabled = valid) { Text("Salva") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Annulla") } },
     )
 }

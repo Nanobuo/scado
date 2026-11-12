@@ -7,6 +7,9 @@ import it.scado.AppContainer
 import it.scado.data.AppSettings
 import it.scado.data.Household
 import it.scado.data.Product
+import it.scado.data.ThemeMode
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import it.scado.notify.ReminderScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -59,6 +62,14 @@ class FridgeViewModel(
 ) : ViewModel() {
     private val hid = session.householdId
 
+    private val _userName = MutableStateFlow(session.userName)
+    val userName: StateFlow<String> = _userName.asStateFlow()
+
+    /** Il nome può cambiare (anche da un altro telefono): lo aggiorna la sessione. */
+    fun onUserNameChanged(name: String) {
+        _userName.value = name
+    }
+
     val products: StateFlow<List<Product>?> = c.productRepo.products(hid)
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
@@ -78,7 +89,7 @@ class FridgeViewModel(
     }
 
     fun addProduct(name: String, date: LocalDate, reminders: Set<Int>) =
-        c.productRepo.add(hid, name, date.toEpochDay(), reminders, session.uid, session.userName)
+        c.productRepo.add(hid, name, date.toEpochDay(), reminders, session.uid, _userName.value)
 
     fun updateProduct(p: Product, name: String, date: LocalDate, reminders: Set<Int>) =
         c.productRepo.update(hid, p.id, name, date.toEpochDay(), reminders)
@@ -89,6 +100,21 @@ class FridgeViewModel(
 
     fun setDefaultReminders(days: Set<Int>) {
         viewModelScope.launch { c.settingsRepo.setDefaultReminderDays(days) }
+    }
+
+    fun renameFridge(name: String) {
+        if (name.isNotBlank()) c.householdRepo.renameHousehold(hid, name)
+    }
+
+    fun renameMe(name: String) {
+        if (name.isBlank()) return
+        _userName.value = name.trim()
+        c.householdRepo.renameUser(session.uid, hid, name)
+        c.authRepo.updateDisplayName(name)
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { c.settingsRepo.setThemeMode(mode) }
     }
 
     fun setNotifyTime(hour: Int, minute: Int) {

@@ -69,6 +69,7 @@ private fun FridgeNav(
         key = "fridge_${session.uid}_${session.householdId}",
         factory = viewModelFactory { initializer { FridgeViewModel(app, container, session) } },
     )
+    LaunchedEffect(session.userName) { vm.onUserNameChanged(session.userName) }
     val nav = rememberNavController()
 
     NavHost(nav, startDestination = "home") {

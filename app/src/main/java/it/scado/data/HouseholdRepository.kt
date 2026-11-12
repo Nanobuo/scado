@@ -116,6 +116,19 @@ class HouseholdRepository(private val db: FirebaseFirestore) {
         return hid
     }
 
+    /** Le scritture non attendono il server: funzionano anche offline. */
+    fun renameHousehold(hid: String, name: String) {
+        households().document(hid).update("name", name.trim())
+    }
+
+    fun renameUser(uid: String, hid: String?, name: String) {
+        val n = name.trim()
+        val batch = db.batch()
+        batch.set(users().document(uid), mapOf("displayName" to n), SetOptions.merge())
+        if (hid != null) batch.update(households().document(hid), "memberNames.$uid", n)
+        batch.commit()
+    }
+
     suspend fun leaveHousehold(uid: String, hid: String) {
         val batch = db.batch()
         batch.update(

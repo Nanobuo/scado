@@ -42,6 +42,12 @@ class AuthRepository(
             .await()
     }
 
+    fun updateDisplayName(name: String) {
+        auth.currentUser?.updateProfile(
+            UserProfileChangeRequest.Builder().setDisplayName(name.trim()).build()
+        )
+    }
+
     fun signOut() = auth.signOut()
 
     companion object {
