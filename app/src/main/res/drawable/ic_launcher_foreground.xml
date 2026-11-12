@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- corpo del frigo -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M44,26h20a6,6 0 0 1 6,6v44a6,6 0 0 1 -6,6h-20a6,6 0 0 1 -6,-6v-44a6,6 0 0 1 6,-6z" />
+    <!-- separazione freezer / frigo -->
+    <path android:fillColor="#FF1B8A6B" android:pathData="M38,44.5h32v2.5h-32z" />
+    <!-- maniglie -->
+    <path android:fillColor="#FF1B8A6B" android:pathData="M43.5,32h3v8h-3z" />
+    <path android:fillColor="#FF1B8A6B" android:pathData="M43.5,52h3v14h-3z" />
+    <!-- pallino promemoria -->
+    <path android:fillColor="#FFFF8A65"
+        android:strokeColor="#FF1B8A6B" android:strokeWidth="2"
+        android:pathData="M69,21a8,8 0 1 1 0,16a8,8 0 1 1 0,-16z" />
+</vector>

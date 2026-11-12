@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Scado</string>
+    <string name="shortcut_shopping_short">Ho fatto la spesa</string>
+    <string name="shortcut_shopping_long">Inserisci la spesa</string>
+</resources>

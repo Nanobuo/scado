@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_cart"
+        android:shortcutId="shopping"
+        android:shortcutLongLabel="@string/shortcut_shopping_long"
+        android:shortcutShortLabel="@string/shortcut_shopping_short">
+        <intent
+            android:action="it.scado.ACTION_SHOPPING"
+            android:targetClass="it.scado.MainActivity"
+            android:targetPackage="it.scado" />
+    </shortcut>
+</shortcuts>

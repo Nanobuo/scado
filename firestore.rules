@@ -1,0 +1,74 @@
+rules_version = '2';
+
+// Ogni "frigo" (household) è privato: solo i suoi membri ne vedono il contenuto.
+// Per entrare in un frigo bisogna conoscerne il codice invito.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function householdPath(hid) {
+      return /databases/$(database)/documents/households/$(hid);
+    }
+    function isMember(hid) {
+      return signedIn() && request.auth.uid in get(householdPath(hid)).data.members;
+    }
+    function validProduct(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 100
+        && d.expiryEpochDay is int
+        && d.reminderDays is list && d.reminderDays.size() <= 20;
+    }
+
+    // Profilo personale: lo vede e lo modifica solo il proprietario.
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Codice invito -> id del frigo. Si può leggere un codice solo se lo si conosce
+    // (get sì, list no). Lo crea un membro, insieme al frigo stesso.
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn()
+        && request.auth.uid in getAfter(householdPath(request.resource.data.householdId)).data.members
+        && getAfter(householdPath(request.resource.data.householdId)).data.inviteCode == code;
+      allow delete: if isMember(resource.data.householdId);
+    }
+
+    match /households/{hid} {
+      allow read: if signedIn() && request.auth.uid in resource.data.members;
+
+      allow create: if signedIn()
+        && request.resource.data.members == [request.auth.uid]
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.inviteCode is string
+        && request.resource.data.inviteCode.size() == 6;
+
+      // I membri possono modificare il frigo (rinominarlo, uscire...).
+      // Chi non è membro può solo aggiungere sé stesso, dimostrando di
+      // conoscere il codice invito tramite il documento joins/{uid}.
+      allow update: if signedIn() && (
+        request.auth.uid in resource.data.members
+        || (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberNames'])
+          && request.resource.data.members.toSet() == resource.data.members.toSet().union([request.auth.uid].toSet())
+          && request.resource.data.memberNames.diff(resource.data.memberNames).affectedKeys().hasOnly([request.auth.uid])
+          && getAfter(/databases/$(database)/documents/households/$(hid)/joins/$(request.auth.uid)).data.code == resource.data.inviteCode
+        )
+      );
+
+      allow delete: if false;
+
+      match /joins/{uid} {
+        allow read: if signedIn() && (request.auth.uid == uid || isMember(hid));
+        allow create, update: if signedIn() && request.auth.uid == uid
+          && request.resource.data.code == get(householdPath(hid)).data.inviteCode;
+      }
+
+      match /products/{pid} {
+        allow read, delete: if isMember(hid);
+        allow create, update: if isMember(hid) && validProduct(request.resource.data);
+      }
+    }
+  }
+}
