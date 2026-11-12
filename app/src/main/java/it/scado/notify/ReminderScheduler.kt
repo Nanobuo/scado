@@ -7,6 +7,7 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import it.scado.data.AppSettings
 import it.scado.data.Product
+import kotlinx.coroutines.flow.first
 import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
@@ -17,7 +18,6 @@ import java.util.concurrent.TimeUnit
  * Trasforma la lista dei prodotti in notifiche programmate (una per ogni
  * promemoria di ogni prodotto). È idempotente: si può chiamare ogni volta che
  * la lista cambia, aggiunge ciò che manca e cancella ciò che non serve più.
- * Va chiamato da un thread in background.
  */
 object ReminderScheduler {
     private const val TAG = "scado_reminder"
@@ -28,7 +28,7 @@ object ReminderScheduler {
     const val KEY_NAME = "name"
     const val KEY_EXPIRY = "expiry"
 
-    fun sync(context: Context, householdId: String, products: List<Product>, settings: AppSettings) {
+    suspend fun sync(context: Context, householdId: String, products: List<Product>, settings: AppSettings) {
         val wm = WorkManager.getInstance(context)
         val now = ZonedDateTime.now()
         val zone = ZoneId.systemDefault()
@@ -64,7 +64,7 @@ object ReminderScheduler {
             }
         }
 
-        for (info in wm.getWorkInfosByTag(TAG).get()) {
+        for (info in wm.getWorkInfosByTagFlow(TAG).first()) {
             if (info.state.isFinished) continue
             val name = info.tags.firstOrNull { it.startsWith(NAME_PREFIX) }
                 ?.removePrefix(NAME_PREFIX) ?: continue
