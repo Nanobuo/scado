@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import it.scado.data.productLabel
 import it.scado.ui.FridgeViewModel
 import it.scado.ui.components.ProductForm
 import it.scado.util.Emoji
@@ -63,6 +64,7 @@ fun ShoppingScreen(vm: FridgeViewModel, onDone: () -> Unit) {
     // null = usa i promemoria suggeriti nelle impostazioni
     var customReminders by rememberSaveable { mutableStateOf<List<Int>?>(null) }
     var showPicker by rememberSaveable { mutableStateOf(false) }
+    var quantity by rememberSaveable { mutableStateOf(1) }
     var added by rememberSaveable { mutableStateOf(listOf<String>()) }
 
     val reminders = customReminders?.toSet() ?: settings.defaultReminderDays
@@ -80,14 +82,16 @@ fun ShoppingScreen(vm: FridgeViewModel, onDone: () -> Unit) {
         val day = epochDay ?: return
         val n = name.trim()
         if (n.isEmpty()) return
-        vm.addProduct(n, LocalDate.ofEpochDay(day), reminders)
-        added = added + n
+        vm.addProduct(n, LocalDate.ofEpochDay(day), reminders, quantity)
+        val label = productLabel(n, quantity)
+        added = added + label
         name = ""
+        quantity = 1
         epochDay = null
         customReminders = null
         scope.launch {
             snackbar.currentSnackbarData?.dismiss()
-            snackbar.showSnackbar("${Emoji.forName(n)} $n nel frigo", duration = SnackbarDuration.Short)
+            snackbar.showSnackbar("${Emoji.forName(n)} $label nel frigo", duration = SnackbarDuration.Short)
         }
     }
 
@@ -148,6 +152,7 @@ fun ShoppingScreen(vm: FridgeViewModel, onDone: () -> Unit) {
             ) {
                 ProductForm(
                     name = name, onNameChange = { name = it },
+                    quantity = quantity, onQuantityChange = { quantity = it },
                     date = epochDay?.let(LocalDate::ofEpochDay), onDateChange = { epochDay = it.toEpochDay() },
                     reminders = reminders, onRemindersChange = { customReminders = it.sorted() },
                     showDatePicker = showPicker, onShowDatePickerChange = { showPicker = it },

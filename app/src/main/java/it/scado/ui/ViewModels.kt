@@ -88,11 +88,13 @@ class FridgeViewModel(
         }
     }
 
-    fun addProduct(name: String, date: LocalDate, reminders: Set<Int>) =
-        c.productRepo.add(hid, name, date.toEpochDay(), reminders, session.uid, _userName.value)
+    fun addProduct(name: String, date: LocalDate, reminders: Set<Int>, quantity: Int) =
+        c.productRepo.add(hid, name, date.toEpochDay(), reminders, quantity, session.uid, _userName.value)
 
-    fun updateProduct(p: Product, name: String, date: LocalDate, reminders: Set<Int>) =
-        c.productRepo.update(hid, p.id, name, date.toEpochDay(), reminders)
+    fun updateProduct(p: Product, name: String, date: LocalDate, reminders: Set<Int>, quantity: Int) =
+        c.productRepo.update(hid, p.id, name, date.toEpochDay(), reminders, quantity)
+
+    fun setQuantity(p: Product, quantity: Int) = c.productRepo.setQuantity(hid, p.id, quantity)
 
     fun deleteProduct(p: Product) = c.productRepo.delete(hid, p.id)
 

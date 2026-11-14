@@ -27,6 +27,7 @@ object ReminderScheduler {
     const val KEY_PID = "pid"
     const val KEY_NAME = "name"
     const val KEY_EXPIRY = "expiry"
+    const val KEY_QUANTITY = "quantity"
 
     suspend fun sync(context: Context, householdId: String, products: List<Product>, settings: AppSettings) {
         val wm = WorkManager.getInstance(context)
@@ -55,6 +56,7 @@ object ReminderScheduler {
                             KEY_PID to p.id,
                             KEY_NAME to p.name,
                             KEY_EXPIRY to p.expiryEpochDay,
+                            KEY_QUANTITY to p.quantity,
                         )
                     )
                     .addTag(TAG)

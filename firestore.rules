@@ -17,7 +17,8 @@ service cloud.firestore {
     function validProduct(d) {
       return d.name is string && d.name.size() > 0 && d.name.size() <= 100
         && d.expiryEpochDay is int
-        && d.reminderDays is list && d.reminderDays.size() <= 20;
+        && d.reminderDays is list && d.reminderDays.size() <= 20
+        && (!('quantity' in d) || (d.quantity is int && d.quantity >= 1 && d.quantity <= 99));
     }
 
     // Profilo personale: lo vede e lo modifica solo il proprietario.

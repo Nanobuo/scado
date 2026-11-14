@@ -117,10 +117,29 @@ fun HomeScreen(vm: FridgeViewModel, onShopping: () -> Unit, onSettings: () -> Un
         scope.launch {
             snackbar.currentSnackbarData?.dismiss()
             val r = snackbar.showSnackbar(
-                "${p.name} tolto dal frigo", actionLabel = "Annulla", duration = SnackbarDuration.Short
+                "${p.label} tolto dal frigo", actionLabel = "Annulla", duration = SnackbarDuration.Short
             )
             if (r == SnackbarResult.ActionPerformed) vm.restoreProduct(p)
         }
+    }
+
+    /** Scorrendo si consuma una confezione; l'ultima toglie il prodotto. Ritorna true se sparisce. */
+    fun useOne(p: Product): Boolean {
+        if (p.quantity <= 1) {
+            removeWithUndo(p)
+            return true
+        }
+        val left = p.quantity - 1
+        vm.setQuantity(p, left)
+        scope.launch {
+            snackbar.currentSnackbarData?.dismiss()
+            val r = snackbar.showSnackbar(
+                "${p.name}: una in meno, ne restano $left",
+                actionLabel = "Annulla", duration = SnackbarDuration.Short,
+            )
+            if (r == SnackbarResult.ActionPerformed) vm.setQuantity(p, p.quantity)
+        }
+        return false
     }
 
     Scaffold(
@@ -185,7 +204,7 @@ fun HomeScreen(vm: FridgeViewModel, onShopping: () -> Unit, onSettings: () -> Un
                         SwipeableProduct(
                             product = p,
                             onClick = { editingId = p.id },
-                            onRemove = { removeWithUndo(p) },
+                            onSwipe = { useOne(p) },
                             modifier = Modifier.animateItem(),
                         )
                     }
@@ -200,8 +219,8 @@ fun HomeScreen(vm: FridgeViewModel, onShopping: () -> Unit, onSettings: () -> Un
             product = editing,
             defaultReminders = vm.settings.collectAsStateWithLifecycle().value.defaultReminderDays,
             onDismiss = { editingId = null },
-            onSave = { name, date, reminders ->
-                vm.updateProduct(editing, name, date, reminders)
+            onSave = { name, date, reminders, quantity ->
+                vm.updateProduct(editing, name, date, reminders, quantity)
                 editingId = null
             },
             onRemove = {
@@ -250,17 +269,13 @@ private fun EmptyFridge(modifier: Modifier, onShopping: () -> Unit) {
 private fun SwipeableProduct(
     product: Product,
     onClick: () -> Unit,
-    onRemove: () -> Unit,
+    onSwipe: () -> Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val remove by rememberUpdatedState(onRemove)
+    val swipe by rememberUpdatedState(onSwipe)
     val state = rememberSwipeToDismissBoxState(
-        confirmValueChange = {
-            if (it != SwipeToDismissBoxValue.Settled) {
-                remove()
-                true
-            } else false
-        }
+        // Se il prodotto resta (quantità scalata) la scheda torna al suo posto.
+        confirmValueChange = { it != SwipeToDismissBoxValue.Settled && swipe() }
     )
     SwipeToDismissBox(
         state = state,
@@ -305,10 +320,21 @@ private fun ProductCard(p: Product, onClick: () -> Unit) {
             ) { Text(Emoji.forName(p.name), fontSize = 24.sp) }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(
-                    p.name, style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        p.name, style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (p.quantity > 1) {
+                        Text(
+                            "  ×${p.quantity}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
                 Text(
                     Dates.format(p.expiryEpochDay) + (p.addedByName?.let { " · $it" } ?: ""),
                     style = MaterialTheme.typography.bodySmall,
@@ -337,13 +363,14 @@ private fun EditProductSheet(
     product: Product,
     defaultReminders: Set<Int>,
     onDismiss: () -> Unit,
-    onSave: (String, LocalDate, Set<Int>) -> Unit,
+    onSave: (String, LocalDate, Set<Int>, Int) -> Unit,
     onRemove: () -> Unit,
 ) {
     var name by rememberSaveable(product.id) { mutableStateOf(product.name) }
     var epochDay by rememberSaveable(product.id) { mutableStateOf(product.expiryEpochDay) }
     var reminders by rememberSaveable(product.id) { mutableStateOf(product.reminderDays.toList()) }
     var showPicker by rememberSaveable { mutableStateOf(false) }
+    var quantity by rememberSaveable(product.id) { mutableStateOf(product.quantity) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -360,6 +387,7 @@ private fun EditProductSheet(
             Text("Modifica prodotto", style = MaterialTheme.typography.titleLarge)
             ProductForm(
                 name = name, onNameChange = { name = it },
+                quantity = quantity, onQuantityChange = { quantity = it },
                 date = LocalDate.ofEpochDay(epochDay), onDateChange = { epochDay = it.toEpochDay() },
                 reminders = reminders.toSet(), onRemindersChange = { reminders = it.sorted() },
                 showDatePicker = showPicker, onShowDatePickerChange = { showPicker = it },
@@ -378,7 +406,7 @@ private fun EditProductSheet(
                     modifier = Modifier.weight(1f),
                 ) { Text("Finito / buttato") }
                 Button(
-                    onClick = { onSave(name.trim(), LocalDate.ofEpochDay(epochDay), reminders.toSet()) },
+                    onClick = { onSave(name.trim(), LocalDate.ofEpochDay(epochDay), reminders.toSet(), quantity) },
                     enabled = name.isNotBlank(),
                     modifier = Modifier.weight(1f),
                 ) { Text("Salva") }

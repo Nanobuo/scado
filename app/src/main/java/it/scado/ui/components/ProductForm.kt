@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardActions
@@ -14,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DatePicker
@@ -21,6 +24,7 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -35,7 +39,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -44,6 +50,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import it.scado.data.MAX_QUANTITY
 import it.scado.util.Dates
 import it.scado.util.Emoji
 import java.time.LocalDate
@@ -56,6 +63,8 @@ val SuggestedReminders = listOf(0, 1, 2, 3, 7)
 fun ProductForm(
     name: String,
     onNameChange: (String) -> Unit,
+    quantity: Int,
+    onQuantityChange: (Int) -> Unit,
     date: LocalDate?,
     onDateChange: (LocalDate) -> Unit,
     reminders: Set<Int>,
@@ -84,9 +93,37 @@ fun ProductForm(
             }),
             modifier = Modifier.fillMaxWidth().focusRequester(nameFocus),
         )
+        QuantityStepper(quantity, onQuantityChange)
         ExpiryDateField(date, onDateChange, showDatePicker, onShowDatePickerChange)
         Text("Avvisami", style = MaterialTheme.typography.titleSmall)
         ReminderPicker(reminders, onRemindersChange)
+    }
+}
+
+/** Quante confezioni uguali, con la stessa scadenza. */
+@Composable
+fun QuantityStepper(value: Int, onChange: (Int) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text("Quantità", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                "Confezioni con la stessa scadenza",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        FilledTonalIconButton(onClick = { onChange(value - 1) }, enabled = value > 1) {
+            Icon(Icons.Default.Remove, contentDescription = "Uno in meno")
+        }
+        Text(
+            "$value",
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(min = 44.dp),
+        )
+        FilledTonalIconButton(onClick = { onChange(value + 1) }, enabled = value < MAX_QUANTITY) {
+            Icon(Icons.Default.Add, contentDescription = "Uno in più")
+        }
     }
 }
 

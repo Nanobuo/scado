@@ -9,7 +9,17 @@ data class Product(
     val reminderDays: List<Int>,
     val addedBy: String?,
     val addedByName: String?,
-)
+    /** Quante confezioni uguali, con la stessa scadenza (es. 2 mozzarelle). */
+    val quantity: Int = 1,
+) {
+    /** "Mozzarella" oppure "2× Mozzarella". */
+    val label: String get() = productLabel(name, quantity)
+}
+
+fun productLabel(name: String, quantity: Int): String =
+    if (quantity > 1) "$quantity× $name" else name
+
+const val MAX_QUANTITY = 99
 
 /** Un "frigo": il database condiviso di un nucleo familiare. */
 data class Household(

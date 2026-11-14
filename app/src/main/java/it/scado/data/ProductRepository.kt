@@ -37,6 +37,7 @@ class ProductRepository(private val db: FirebaseFirestore) {
         name: String,
         expiryEpochDay: Long,
         reminderDays: Collection<Int>,
+        quantity: Int,
         uid: String,
         userName: String,
     ) {
@@ -45,6 +46,7 @@ class ProductRepository(private val db: FirebaseFirestore) {
                 "name" to name,
                 "expiryEpochDay" to expiryEpochDay,
                 "reminderDays" to reminderDays.distinct().sorted(),
+                "quantity" to quantity,
                 "addedBy" to uid,
                 "addedByName" to userName,
                 "createdAt" to FieldValue.serverTimestamp(),
@@ -52,14 +54,26 @@ class ProductRepository(private val db: FirebaseFirestore) {
         )
     }
 
-    fun update(hid: String, id: String, name: String, expiryEpochDay: Long, reminderDays: Collection<Int>) {
+    fun update(
+        hid: String,
+        id: String,
+        name: String,
+        expiryEpochDay: Long,
+        reminderDays: Collection<Int>,
+        quantity: Int,
+    ) {
         col(hid).document(id).update(
             mapOf(
                 "name" to name,
                 "expiryEpochDay" to expiryEpochDay,
                 "reminderDays" to reminderDays.distinct().sorted(),
+                "quantity" to quantity,
             )
         )
+    }
+
+    fun setQuantity(hid: String, id: String, quantity: Int) {
+        col(hid).document(id).update("quantity", quantity)
     }
 
     fun delete(hid: String, id: String) {
@@ -72,6 +86,7 @@ class ProductRepository(private val db: FirebaseFirestore) {
                 "name" to p.name,
                 "expiryEpochDay" to p.expiryEpochDay,
                 "reminderDays" to p.reminderDays,
+                "quantity" to p.quantity,
                 "addedBy" to p.addedBy,
                 "addedByName" to p.addedByName,
                 "createdAt" to FieldValue.serverTimestamp(),
@@ -86,5 +101,7 @@ private fun DocumentSnapshot.toProduct(): Product? {
     val reminders = (get("reminderDays") as? List<*>)
         ?.mapNotNull { (it as? Number)?.toInt() }
         ?: emptyList()
-    return Product(id, name, expiry, reminders, getString("addedBy"), getString("addedByName"))
+    // I prodotti salvati prima che esistesse la quantità valgono 1.
+    val quantity = getLong("quantity")?.toInt()?.coerceIn(1, MAX_QUANTITY) ?: 1
+    return Product(id, name, expiry, reminders, getString("addedBy"), getString("addedByName"), quantity)
 }
